@@ -221,8 +221,8 @@ const Weather = (() => {
     const sevClass = (a.severity || 'unknown').toLowerCase();
     return `
       <a href="camera.html?id=${encodeURIComponent(c.i)}" class="camera-card alert-card alert-card-${sevClass}">
-        <div class="camera-card-thumb">
-          <span class="placeholder">📷</span>
+        <div class="camera-card-thumb cat-bg-${c.ca}">
+          ${c.t === 'image' && c.u ? `<img src="${escHtml(c.u)}" alt="${escHtml(c.n)}" loading="lazy" onerror="this.remove()">` : `<span class="placeholder">📷</span>`}
           <span class="camera-card-alert-badge severity-bg-${sevClass}">
             ${item.icon} ${escHtml(a.event)}
           </span>

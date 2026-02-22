@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>StormWatch — Live Weather & Traffic Cameras Across America</title>
   <meta name="description" content="Monitor 20,000+ live cameras across the United States. Real-time traffic, weather, and skyline feeds with live doppler radar.">
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
@@ -41,8 +44,17 @@
     <div class="nav-right">
       <span class="nav-live-badge"><span class="nav-live-dot"></span> LIVE</span>
       <input type="text" class="nav-search" id="navSearch" placeholder="Search… /">
+      <button class="hamburger" id="hamburger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
     </div>
   </nav>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="index.html" class="active">Command</a>
+    <a href="#map-section">Radar</a>
+    <a href="#states-section">States</a>
+    <a href="about.html">Intel</a>
+  </div>
 
   <!-- SEARCH OVERLAY -->
   <div id="searchOverlay" class="search-overlay">
@@ -86,8 +98,11 @@
     </div>
   </section>
 
+  <!-- BACK TO TOP -->
+  <button class="back-to-top" id="backToTop" aria-label="Back to top">↑</button>
+
   <!-- LIVE NOW -->
-  <section class="section">
+  <section class="section reveal">
     <div class="section-header">
       <h2 class="section-title"><span class="dot"></span> LIVE NOW — Featured Cameras</h2>
       <span class="badge badge-live">● LIVE FEED</span>
@@ -105,7 +120,7 @@
   </section>
 
   <!-- MAP -->
-  <section class="section" id="map-section">
+  <section class="section reveal" id="map-section">
     <div class="section-header">
       <h2 class="section-title">🛰️ National Radar & Camera Map</h2>
       <div class="map-controls">
@@ -145,7 +160,7 @@
   </section>
 
   <!-- STATES -->
-  <section class="section" id="states-section">
+  <section class="section reveal" id="states-section">
     <div class="section-header">
       <h2 class="section-title">📍 Browse by State</h2>
       <span class="badge badge-count" style="background:rgba(0,229,255,0.06);color:var(--accent-cyan);border:1px solid rgba(0,229,255,0.15)" id="stateCountBadge"></span>
@@ -187,12 +202,12 @@
     </div>
   </footer>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-  <script src="data/cameras.js"></script>
-  <script src="data/states.js"></script>
-  <script src="js/app.js"></script>
-  <script src="js/weather.js"></script>
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script defer src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script defer src="data/cameras.js"></script>
+  <script defer src="data/states.js"></script>
+  <script defer src="js/app.js"></script>
+  <script defer src="js/weather.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       // ─── PARTICLE EFFECT ───
@@ -328,6 +343,44 @@
           if (toggle) { toggle.checked = !toggle.checked; Weather.toggleRadar(toggle.checked); }
         }
       });
+
+      // ─── SCROLL REVEAL ANIMATIONS ───
+      const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            revealObserver.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+      document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+      // ─── HAMBURGER MENU ───
+      const hamburger = document.getElementById('hamburger');
+      const mobileMenu = document.getElementById('mobileMenu');
+      if (hamburger && mobileMenu) {
+        hamburger.addEventListener('click', () => {
+          hamburger.classList.toggle('active');
+          mobileMenu.classList.toggle('active');
+        });
+        mobileMenu.querySelectorAll('a').forEach(a => {
+          a.addEventListener('click', () => {
+            hamburger.classList.remove('active');
+            mobileMenu.classList.remove('active');
+          });
+        });
+      }
+
+      // ─── BACK TO TOP ───
+      const backToTop = document.getElementById('backToTop');
+      if (backToTop) {
+        window.addEventListener('scroll', () => {
+          backToTop.classList.toggle('visible', window.scrollY > 600);
+        }, { passive: true });
+        backToTop.addEventListener('click', () => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
     });
   </script>
 </body>

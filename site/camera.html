@@ -108,6 +108,14 @@
       ]);
       Weather.renderConditions(conditions, document.getElementById('camWeather'));
       Weather.renderPointAlerts(alerts, document.getElementById('camAlerts'));
+
+      // Auto-refresh camera image every 30s
+      if (cam.t === 'image') {
+        setInterval(() => {
+          const img = document.querySelector('#cameraPlayer img');
+          if (img) img.src = cam.u + (cam.u.includes('?') ? '&' : '?') + '_t=' + Date.now();
+        }, 30000);
+      }
     });
   </script>
 </body>

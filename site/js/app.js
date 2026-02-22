@@ -281,10 +281,14 @@ function initStatePage(cameras, stateCode) {
 }
 
 function cameraCard(c) {
+  const isImage = c.t === 'image' && c.u;
+  const thumbHtml = isImage
+    ? `<img src="${escHtml(c.u)}" alt="${escHtml(c.n)}" loading="lazy" onerror="this.remove()">`
+    : `<span class="placeholder">📷</span>`;
   return `
     <a href="camera.html?id=${encodeURIComponent(c.i)}" class="camera-card">
-      <div class="camera-card-thumb">
-        <span class="placeholder">📷</span>
+      <div class="camera-card-thumb cat-bg-${c.ca}">
+        ${thumbHtml}
         <span class="camera-card-live">LIVE</span>
       </div>
       <div class="camera-card-body">
