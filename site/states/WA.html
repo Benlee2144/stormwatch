@@ -3,56 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Washington Cameras — StormWatch</title>
+  <title>WA Cameras — StormWatch</title>
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#00e5ff">
 </head>
 <body>
+  <canvas id="particleCanvas"></canvas>
   <nav class="navbar">
-    <a href="../index.html" class="navbar-brand">
-      <span class="icon">⚡</span>
-      <span>Storm<span class="accent">Watch</span></span>
-    </a>
-    <div class="nav-links">
-      <a href="../index.html">Map</a>
-      <a href="../about.html">About</a>
+    <a href="../index.html" class="navbar-brand"><span class="icon">⚡</span><span>Storm<span class="accent">Watch</span></span></a>
+    <div class="nav-links"><a href="../index.html">Command</a><a href="../about.html">Intel</a></div>
+    <div class="nav-right">
+      <span class="nav-live-badge"><span class="nav-live-dot"></span> LIVE</span>
+      <input type="text" class="nav-search" id="navSearch" placeholder="Search… /">
     </div>
-    <input type="text" class="nav-search" id="navSearch" placeholder="Search cameras… ⌘K">
   </nav>
-
-  <div id="searchOverlay" class="search-overlay">
-    <div class="search-box">
-      <input type="text" class="search-input" id="searchInput" placeholder="Search by city, state, or camera name…" autocomplete="off">
-    </div>
-    <div id="searchResults" class="search-results"></div>
-  </div>
-
-  <section class="state-hero">
-    <h1 id="stateTitle">Washington</h1>
-    <div class="state-stats" id="stateStats"></div>
-  </section>
-
-  <section class="section">
-    <div id="stateMap"></div>
-    <div id="stateCameras"></div>
-  </section>
-
-  <footer class="footer">
-    <p>⚡ StormWatch — Real-time camera monitoring across America</p>
-  </footer>
-
+  <div id="searchOverlay" class="search-overlay"><div class="search-box"><input type="text" class="search-input" id="searchInput" placeholder="Search by city, state, or camera name…" autocomplete="off"></div><div id="searchResults" class="search-results"></div></div>
+  <section class="state-hero"><h1 id="stateTitle">WA</h1><div class="state-stats" id="stateStats"></div></section>
+  <section class="section"><div id="stateMap"></div><div id="stateCameras"></div></section>
+  <footer class="footer"><div class="footer-bottom"><span>⚡ StormWatch — Real-time camera monitoring across America</span><span></span></div></footer>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
   <script src="../data/cameras.js"></script>
   <script src="../js/app.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      initStatePage(CAMERAS, 'WA');
-      initSearch(CAMERAS);
-    });
+    (function(){const c=document.getElementById('particleCanvas');if(!c)return;const ctx=c.getContext('2d');let w,h,ps=[];function r(){w=c.width=innerWidth;h=c.height=innerHeight}r();addEventListener('resize',r);for(let i=0;i<30;i++)ps.push({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-0.5)*0.2,vy:Math.random()*0.3+0.1,r:Math.random()+0.5,a:Math.random()*0.2+0.03});function d(){ctx.clearRect(0,0,w,h);ps.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(0,229,255,${p.a})`;ctx.fill();p.x+=p.vx;p.y+=p.vy;if(p.y>h){p.y=-5;p.x=Math.random()*w}if(p.x<0||p.x>w)p.vx*=-1});requestAnimationFrame(d)}d()})();
+    document.addEventListener('DOMContentLoaded',()=>{initStatePage(CAMERAS,'WA');initSearch(CAMERAS)});
   </script>
 </body>
 </html>

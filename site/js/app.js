@@ -36,9 +36,16 @@ function initMainMap(cameras, containerId = 'mainMap') {
     maxZoom: 18
   }).setView([39.5, -98.35], 5);
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
     subdomains: 'abcd',
     maxZoom: 19
+  }).addTo(map);
+  // Add labels on top (above radar)
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', {
+    subdomains: 'abcd',
+    maxZoom: 19,
+    zIndex: 600,
+    pane: 'overlayPane'
   }).addTo(map);
 
   // Use marker clustering for performance with 20K+ cameras
@@ -65,11 +72,12 @@ function initMainMap(cameras, containerId = 'mainMap') {
     const marker = L.circleMarker([cam.la, cam.ln], {
       radius: 4,
       fillColor: color,
-      fillOpacity: 0.85,
+      fillOpacity: 0.9,
       stroke: true,
       color: color,
-      weight: 1,
-      opacity: 0.5
+      weight: 2,
+      opacity: 0.4,
+      className: 'cam-marker-glow'
     });
 
     marker.bindPopup(`
@@ -91,7 +99,8 @@ function initMainMap(cameras, containerId = 'mainMap') {
 function initStateMap(cameras, containerId = 'stateMap') {
   if (!cameras.length) return;
   const map = L.map(containerId, { zoomControl: true, attributionControl: false }).setView([cameras[0].la, cameras[0].ln], 7);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd' }).addTo(map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', { subdomains: 'abcd' }).addTo(map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', zIndex: 600, pane: 'overlayPane' }).addTo(map);
 
   const markers = L.markerClusterGroup({
     maxClusterRadius: 40,

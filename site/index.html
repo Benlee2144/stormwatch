@@ -4,20 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>StormWatch — Live Weather & Traffic Cameras Across America</title>
-  <meta name="description" content="Monitor 20,000+ live cameras across the United States. Real-time traffic, weather, and skyline feeds from 39 states.">
+  <meta name="description" content="Monitor 20,000+ live cameras across the United States. Real-time traffic, weather, and skyline feeds with live doppler radar.">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <meta property="og:title" content="StormWatch — Live Weather & Traffic Cameras">
-  <meta property="og:description" content="Monitor 20,000+ live cameras across 39 states. Real-time traffic, weather, and skyline feeds in one dark command center.">
+  <meta property="og:description" content="Monitor 20,000+ live cameras across 39 states. Real-time traffic, weather, and skyline feeds with animated doppler radar.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://benlee2144.github.io/stormwatch/">
   <meta name="twitter:card" content="summary">
-  <meta name="theme-color" content="#06b6d4">
+  <meta name="theme-color" content="#00e5ff">
 </head>
 <body>
+  <!-- PARTICLE BACKGROUND -->
+  <canvas id="particleCanvas"></canvas>
+
+  <!-- ALERT TICKER -->
+  <div id="alertTicker" class="alert-ticker">
+    <div class="alert-ticker-content" id="alertTickerContent"></div>
+  </div>
+
   <!-- NAVBAR -->
   <nav class="navbar">
     <a href="index.html" class="navbar-brand">
@@ -25,11 +33,15 @@
       <span>Storm<span class="accent">Watch</span></span>
     </a>
     <div class="nav-links">
-      <a href="index.html" class="active">Map</a>
+      <a href="index.html" class="active">Command</a>
+      <a href="#map-section">Radar</a>
       <a href="#states-section">States</a>
-      <a href="about.html">About</a>
+      <a href="about.html">Intel</a>
     </div>
-    <input type="text" class="nav-search" id="navSearch" placeholder="Search cameras… ⌘K">
+    <div class="nav-right">
+      <span class="nav-live-badge"><span class="nav-live-dot"></span> LIVE</span>
+      <input type="text" class="nav-search" id="navSearch" placeholder="Search… /">
+    </div>
   </nav>
 
   <!-- SEARCH OVERLAY -->
@@ -44,10 +56,15 @@
   <section class="hero">
     <div class="hero-bg"></div>
     <div class="hero-grid"></div>
+    <div class="hero-vignette"></div>
     <div class="hero-scanline"></div>
     <div class="hero-content">
+      <div class="hero-badge">
+        <span class="pulse-dot"></span>
+        REAL-TIME MONITORING ACTIVE
+      </div>
       <h1>Real-Time Eyes on<br><span class="glow">Every Storm</span></h1>
-      <p>Monitor 20,000+ live cameras across America. Traffic feeds, weather cams, and skyline views — all in one dark, data-driven command center.</p>
+      <p>Command center for 20,000+ live cameras across America. Traffic feeds, weather cams, skyline views, and animated doppler radar — unified in one dark, data-driven interface.</p>
       <div class="stats-bar" id="statsBar">
         <div class="stat">
           <div class="stat-value" id="statCams">—</div>
@@ -61,6 +78,10 @@
           <div class="stat-value" id="statStates">—</div>
           <div class="stat-label">States</div>
         </div>
+        <div class="stat">
+          <div class="stat-value" id="statAlerts">—</div>
+          <div class="stat-label">Active Alerts</div>
+        </div>
       </div>
     </div>
   </section>
@@ -69,44 +90,57 @@
   <section class="section">
     <div class="section-header">
       <h2 class="section-title"><span class="dot"></span> LIVE NOW — Featured Cameras</h2>
-      <span class="badge badge-live">● LIVE</span>
+      <span class="badge badge-live">● LIVE FEED</span>
     </div>
     <div class="camera-grid" id="featuredGrid"></div>
   </section>
 
   <!-- ALERT STATUS BAR -->
-  <section class="section" style="padding-bottom:0">
+  <section class="section" style="padding-top:0;padding-bottom:0">
     <div class="alert-status-bar" id="alertStatusBar">
       <span class="pulse-dot"></span>
-      <span class="alert-status-text" id="alertStatusText">Loading weather alerts…</span>
+      <span class="alert-status-text" id="alertStatusText">Connecting to NWS weather feeds…</span>
       <span class="alert-refresh-time" id="alertRefreshTime"></span>
     </div>
   </section>
 
   <!-- MAP -->
-  <section class="section">
+  <section class="section" id="map-section">
     <div class="section-header">
-      <h2 class="section-title">🗺️ Camera Map</h2>
+      <h2 class="section-title">🛰️ National Radar & Camera Map</h2>
       <div class="map-controls">
-        <label class="radar-toggle" title="Toggle NEXRAD radar overlay">
-          <input type="checkbox" id="radarToggle">
+        <label class="radar-toggle" title="Toggle animated doppler radar">
+          <input type="checkbox" id="radarToggle" checked>
           <span class="toggle-track"></span>
-          <span>🛰️ Radar</span>
+          <span>Doppler Radar</span>
         </label>
         <div class="alert-counter" id="alertCounterWrap">
-          <span class="alert-icon-sm">⚠️</span>
+          <span>⚠️</span>
           <span id="alertCount">0</span> alerts
         </div>
         <div class="map-legend">
-          <div class="legend-item"><span class="legend-dot" style="background:#3b82f6"></span> Traffic</div>
-          <div class="legend-item"><span class="legend-dot" style="background:#8b5cf6"></span> Skyline</div>
-          <div class="legend-item"><span class="legend-dot" style="background:#10b981"></span> Weather</div>
-          <div class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span> Airport</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#3b82f6;box-shadow:0 0 6px #3b82f6"></span> Traffic</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#a855f7;box-shadow:0 0 6px #a855f7"></span> Skyline</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#00ff87;box-shadow:0 0 6px #00ff87"></span> Weather</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#ff9f43;box-shadow:0 0 6px #ff9f43"></span> Airport</div>
         </div>
       </div>
     </div>
     <div class="map-container">
       <div id="mainMap"></div>
+      <!-- Radar dBZ Legend -->
+      <div class="radar-legend active" id="radarLegend">
+        <div class="radar-legend-title">Radar Reflectivity (dBZ)</div>
+        <div class="radar-legend-bar"></div>
+        <div class="radar-legend-labels">
+          <span>5</span><span>20</span><span>35</span><span>50</span><span>65+</span>
+        </div>
+      </div>
+      <!-- Radar timestamp -->
+      <div class="radar-timestamp active" id="radarTimestamp">
+        <span class="radar-anim-dot"></span>
+        <span id="radarTime">Loading…</span>
+      </div>
     </div>
   </section>
 
@@ -114,14 +148,43 @@
   <section class="section" id="states-section">
     <div class="section-header">
       <h2 class="section-title">📍 Browse by State</h2>
+      <span class="badge badge-count" style="background:rgba(0,229,255,0.06);color:var(--accent-cyan);border:1px solid rgba(0,229,255,0.15)" id="stateCountBadge"></span>
     </div>
     <div class="state-grid" id="stateGrid"></div>
   </section>
 
   <!-- FOOTER -->
   <footer class="footer">
-    <p>⚡ StormWatch — Real-time camera monitoring across America</p>
-    <p style="margin-top:0.5rem">Data sourced from state DOTs, EarthCam, and public feeds. Not affiliated with any government agency.</p>
+    <div class="footer-inner">
+      <div>
+        <div class="footer-brand">⚡ Storm<span class="accent">Watch</span></div>
+        <p class="footer-desc">Real-time camera monitoring and weather intelligence across America. Data sourced from state DOTs, NWS, RainViewer, EarthCam, and public feeds. Not affiliated with any government agency.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Navigation</h4>
+        <a href="index.html">Command Center</a>
+        <a href="#map-section">Live Radar</a>
+        <a href="#states-section">Browse States</a>
+        <a href="about.html">About / Intel</a>
+      </div>
+      <div class="footer-col">
+        <h4>Data Sources</h4>
+        <a href="https://www.weather.gov" target="_blank" rel="noopener">NWS Weather.gov</a>
+        <a href="https://www.rainviewer.com" target="_blank" rel="noopener">RainViewer Radar</a>
+        <a href="#">State DOT Feeds</a>
+        <a href="#">Public Cameras</a>
+      </div>
+      <div class="footer-col">
+        <h4>Keyboard</h4>
+        <a href="#"><span class="kbd">/</span> Search</a>
+        <a href="#"><span class="kbd">R</span> Toggle Radar</a>
+        <a href="#"><span class="kbd">Esc</span> Close</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025 StormWatch. Built for weather enthusiasts.</span>
+      <span>20,000+ cameras • 39 states • Real-time data</span>
+    </div>
   </footer>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -132,14 +195,64 @@
   <script src="js/weather.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
-      // Stats
+      // ─── PARTICLE EFFECT ───
+      (function() {
+        const canvas = document.getElementById('particleCanvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let w, h, particles = [];
+        function resize() {
+          w = canvas.width = window.innerWidth;
+          h = canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+        for (let i = 0; i < 60; i++) {
+          particles.push({
+            x: Math.random() * w, y: Math.random() * h,
+            vx: (Math.random() - 0.5) * 0.3,
+            vy: Math.random() * 0.5 + 0.1,
+            r: Math.random() * 1.5 + 0.5,
+            a: Math.random() * 0.3 + 0.05
+          });
+        }
+        function draw() {
+          ctx.clearRect(0, 0, w, h);
+          particles.forEach(p => {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(0, 229, 255, ${p.a})`;
+            ctx.fill();
+            p.x += p.vx;
+            p.y += p.vy;
+            if (p.y > h) { p.y = -5; p.x = Math.random() * w; }
+            if (p.x < 0 || p.x > w) p.vx *= -1;
+          });
+          requestAnimationFrame(draw);
+        }
+        draw();
+      })();
+
+      // ─── ANIMATED STAT COUNTERS ───
+      function animateCounter(el, target) {
+        const duration = 1500;
+        const start = performance.now();
+        function step(now) {
+          const progress = Math.min((now - start) / duration, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          el.textContent = Math.floor(target * eased).toLocaleString();
+          if (progress < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      }
+
       const cities = new Set(CAMERAS.map(c => c.c));
       const states = new Set(CAMERAS.map(c => c.s));
-      document.getElementById('statCams').textContent = CAMERAS.length.toLocaleString();
-      document.getElementById('statCities').textContent = cities.size.toLocaleString();
-      document.getElementById('statStates').textContent = states.size;
+      animateCounter(document.getElementById('statCams'), CAMERAS.length);
+      animateCounter(document.getElementById('statCities'), cities.size);
+      animateCounter(document.getElementById('statStates'), states.size);
 
-      // Temporary featured while alerts load
+      // Temp featured
       const skyline = CAMERAS.filter(c => c.ca === 'skyline');
       const featured = [...skyline.slice(0, 6)];
       if (featured.length < 6) {
@@ -159,19 +272,22 @@
           <div class="count">${d.total.toLocaleString()} cams</div>
         </a>
       `).join('');
+      document.getElementById('stateCountBadge').textContent = `${stateEntries.length} states`;
 
       // Search
       initSearch(CAMERAS);
 
-      // ─── WEATHER INTEGRATION ───
+      // ─── WEATHER + RADAR ───
 
-      // Setup radar layer (hidden by default)
-      Weather.addRadarLayer(map);
+      // Radar ON by default
+      await Weather.addRadarLayer(map);
+      Weather.toggleRadar(true);
+
       document.getElementById('radarToggle').addEventListener('change', (e) => {
         Weather.toggleRadar(e.target.checked);
       });
 
-      // Fetch alerts and render
+      // Fetch alerts
       const statusText = document.getElementById('alertStatusText');
       const statusBar = document.getElementById('alertStatusBar');
       const refreshTime = document.getElementById('alertRefreshTime');
@@ -182,24 +298,36 @@
         Weather.renderLiveNow(CAMERAS);
 
         const count = alerts.length;
+        animateCounter(document.getElementById('statAlerts'), count);
         if (count > 0) {
           statusBar.classList.add('has-warnings');
           statusText.innerHTML = `<strong>${count}</strong> active weather alert${count !== 1 ? 's' : ''} across the US`;
         } else {
-          statusText.innerHTML = `✅ No active weather alerts`;
+          statusText.innerHTML = `✅ All clear — no active weather alerts`;
         }
         refreshTime.textContent = `Updated ${new Date().toLocaleTimeString()}`;
       } catch (err) {
-        statusText.innerHTML = `⚠️ Unable to load weather alerts`;
+        statusText.innerHTML = `⚠️ Unable to connect to weather feeds`;
       }
 
-      // Start auto-refresh (alerts 60s, radar 5min)
       Weather.startAutoRefresh(map, CAMERAS);
 
-      // Update timestamp on refresh
       setInterval(() => {
         refreshTime.textContent = `Updated ${new Date().toLocaleTimeString()}`;
       }, 60000);
+
+      // ─── KEYBOARD SHORTCUTS ───
+      document.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT') return;
+        if (e.key === '/') {
+          e.preventDefault();
+          document.getElementById('navSearch')?.focus();
+        }
+        if (e.key === 'r' || e.key === 'R') {
+          const toggle = document.getElementById('radarToggle');
+          if (toggle) { toggle.checked = !toggle.checked; Weather.toggleRadar(toggle.checked); }
+        }
+      });
     });
   </script>
 </body>

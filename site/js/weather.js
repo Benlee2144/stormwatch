@@ -1,8 +1,6 @@
-/* StormWatch — Weather Integration (Phase 3)
-   NWS Alerts, NEXRAD Radar, Camera-Alert Cross-referencing */
+/* StormWatch — Weather Integration with RainViewer Animated Radar */
 
 const Weather = (() => {
-  // NWS Alert severity → color mapping
   const SEVERITY_COLORS = {
     Extreme:  { fill: '#dc2626', stroke: '#ef4444', opacity: 0.35, priority: 4 },
     Severe:   { fill: '#f97316', stroke: '#fb923c', opacity: 0.30, priority: 3 },
@@ -11,7 +9,6 @@ const Weather = (() => {
     Unknown:  { fill: '#6b7280', stroke: '#9ca3af', opacity: 0.15, priority: 0 }
   };
 
-  // NWS event type → short label & icon
   const EVENT_ICONS = {
     'Tornado Warning': '🌪️', 'Tornado Watch': '🌪️',
     'Severe Thunderstorm Warning': '⛈️', 'Severe Thunderstorm Watch': '⛈️',
@@ -25,12 +22,16 @@ const Weather = (() => {
   };
 
   let alertsLayer = null;
-  let radarLayer = null;
+  let radarLayers = [];
+  let currentRadarFrame = 0;
+  let radarAnimInterval = null;
+  let radarData = null;
   let alertData = [];
   let alertRefreshTimer = null;
   let radarRefreshTimer = null;
   let map = null;
   let cameras = [];
+  let radarVisible = false;
 
   // ─── NWS ALERTS ───
 
@@ -47,7 +48,7 @@ const Weather = (() => {
       return alertData;
     } catch (err) {
       console.warn('NWS alert fetch failed:', err);
-      return alertData; // return cached
+      return alertData;
     }
   }
 
@@ -57,9 +58,7 @@ const Weather = (() => {
 
   function renderAlerts(leafletMap) {
     map = leafletMap;
-    if (alertsLayer) {
-      map.removeLayer(alertsLayer);
-    }
+    if (alertsLayer) map.removeLayer(alertsLayer);
     alertsLayer = L.layerGroup();
 
     alertData.forEach(feature => {
@@ -70,11 +69,8 @@ const Weather = (() => {
       if (feature.geometry && feature.geometry.type === 'Polygon') {
         const coords = feature.geometry.coordinates[0].map(c => [c[1], c[0]]);
         const poly = L.polygon(coords, {
-          color: style.stroke,
-          fillColor: style.fill,
-          fillOpacity: style.opacity,
-          weight: 2,
-          opacity: 0.8
+          color: style.stroke, fillColor: style.fill,
+          fillOpacity: style.opacity, weight: 2, opacity: 0.8
         });
         poly.bindPopup(alertPopup(props, icon));
         alertsLayer.addLayer(poly);
@@ -93,6 +89,9 @@ const Weather = (() => {
 
     alertsLayer.addTo(map);
     updateAlertCount();
+
+    // Update ticker
+    updateAlertTicker();
   }
 
   function alertPopup(props, icon) {
@@ -120,10 +119,31 @@ const Weather = (() => {
     }
   }
 
+  function updateAlertTicker() {
+    const ticker = document.getElementById('alertTicker');
+    const content = document.getElementById('alertTickerContent');
+    if (!ticker || !content) return;
+
+    const severe = alertData.filter(f => {
+      const s = f.properties?.severity;
+      return s === 'Extreme' || s === 'Severe';
+    });
+
+    if (severe.length > 0) {
+      content.innerHTML = severe.slice(0, 20).map(f => {
+        const p = f.properties;
+        const icon = EVENT_ICONS[p.event] || '⚠️';
+        return `<span>${icon} <strong>${escHtml(p.event)}</strong> — ${escHtml(p.areaDesc || '').substring(0, 80)}</span>`;
+      }).join('');
+      ticker.classList.add('active');
+    } else {
+      ticker.classList.remove('active');
+    }
+  }
+
   // ─── CAMERA-ALERT CROSS REFERENCE ───
 
   function pointInPolygon(point, polygon) {
-    // Ray casting algorithm
     const [x, y] = point;
     let inside = false;
     for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
@@ -139,13 +159,11 @@ const Weather = (() => {
   function getCamerasInAlerts(cameraList) {
     const affected = [];
     const seen = new Set();
-
     alertData.forEach(feature => {
       if (!feature.geometry) return;
       const props = feature.properties;
       const style = getSeverityStyle(props.severity);
       const polygons = [];
-
       if (feature.geometry.type === 'Polygon') {
         polygons.push(feature.geometry.coordinates[0].map(c => [c[1], c[0]]));
       } else if (feature.geometry.type === 'MultiPolygon') {
@@ -153,24 +171,19 @@ const Weather = (() => {
           polygons.push(poly[0].map(c => [c[1], c[0]]));
         });
       }
-
       polygons.forEach(poly => {
         cameraList.forEach(cam => {
           if (seen.has(cam.i)) return;
           if (pointInPolygon([cam.la, cam.ln], poly)) {
             seen.add(cam.i);
             affected.push({
-              camera: cam,
-              alert: props,
-              priority: style.priority,
+              camera: cam, alert: props, priority: style.priority,
               icon: EVENT_ICONS[props.event] || '⚠️'
             });
           }
         });
       });
     });
-
-    // Sort by severity (highest first)
     affected.sort((a, b) => b.priority - a.priority);
     return affected;
   }
@@ -180,26 +193,17 @@ const Weather = (() => {
     const grid = document.getElementById('featuredGrid');
     const header = grid?.closest('.section')?.querySelector('.section-header');
     if (!grid) return;
-
     const affected = getCamerasInAlerts(cameraList);
-
     if (affected.length > 0) {
-      // Update header
       if (header) {
         const titleEl = header.querySelector('.section-title');
-        if (titleEl) {
-          titleEl.innerHTML = `<span class="dot dot-red"></span> LIVE NOW — Cameras in Active Warnings`;
-        }
+        if (titleEl) titleEl.innerHTML = `<span class="dot dot-red"></span> LIVE NOW — Cameras in Active Warnings`;
       }
-
       grid.innerHTML = affected.slice(0, 12).map(item => alertCameraCard(item)).join('');
     } else {
-      // Fall back to featured cameras
       if (header) {
         const titleEl = header.querySelector('.section-title');
-        if (titleEl) {
-          titleEl.innerHTML = `<span class="dot"></span> LIVE NOW — Featured Cameras`;
-        }
+        if (titleEl) titleEl.innerHTML = `<span class="dot"></span> LIVE NOW — Featured Cameras`;
       }
       const skyline = cameraList.filter(c => c.ca === 'skyline');
       const featured = [...skyline.slice(0, 6)];
@@ -234,61 +238,150 @@ const Weather = (() => {
     `;
   }
 
-  // ─── NEXRAD RADAR OVERLAY ───
+  // ─── RAINVIEWER ANIMATED RADAR ───
 
-  function addRadarLayer(leafletMap) {
+  async function fetchRadarData() {
+    try {
+      const res = await fetch('https://api.rainviewer.com/public/weather-maps.json');
+      if (!res.ok) throw new Error('RainViewer API error');
+      radarData = await res.json();
+      return radarData;
+    } catch (err) {
+      console.warn('RainViewer fetch failed:', err);
+      return null;
+    }
+  }
+
+  async function addRadarLayer(leafletMap) {
     map = leafletMap;
-    radarLayer = L.tileLayer.wms('https://mesonet.agron.iastate.edu/cgi-bin/wms/nexrad/n0r.cgi', {
-      layers: 'nexrad-n0r-900913',
-      format: 'image/png',
-      transparent: true,
-      opacity: 0.6,
-      attribution: 'NOAA NEXRAD via Iowa State Mesonet',
-      zIndex: 500
+    await fetchRadarData();
+    if (!radarData) return;
+
+    // Pre-create tile layers for last 10 frames
+    const frames = radarData.radar?.past || [];
+    const nowcast = radarData.radar?.nowcast || [];
+    const allFrames = [...frames.slice(-10)];
+
+    radarLayers = allFrames.map(frame => {
+      const layer = L.tileLayer(
+        `https://tilecache.rainviewer.com${frame.path}/256/{z}/{x}/{y}/4/1_1.png`,
+        {
+          opacity: 0,
+          zIndex: 500,
+          maxZoom: 18,
+          tileSize: 256,
+          attribution: 'RainViewer.com'
+        }
+      );
+      layer._radarTime = frame.time;
+      return layer;
     });
-    return radarLayer;
   }
 
   function toggleRadar(show) {
-    if (!map || !radarLayer) return;
+    if (!map) return;
+    radarVisible = show;
+
+    const legend = document.querySelector('.radar-legend');
+    const timestamp = document.querySelector('.radar-timestamp');
+
     if (show) {
-      radarLayer.addTo(map);
+      if (radarLayers.length === 0) {
+        // Layers not ready yet, try again
+        addRadarLayer(map).then(() => {
+          if (radarVisible) startRadarAnimation();
+        });
+        return;
+      }
+      startRadarAnimation();
+      if (legend) legend.classList.add('active');
+      if (timestamp) timestamp.classList.add('active');
     } else {
-      map.removeLayer(radarLayer);
+      stopRadarAnimation();
+      radarLayers.forEach(l => { if (map.hasLayer(l)) map.removeLayer(l); });
+      if (legend) legend.classList.remove('active');
+      if (timestamp) timestamp.classList.remove('active');
     }
   }
 
-  function refreshRadar() {
-    if (radarLayer && map.hasLayer(radarLayer)) {
-      radarLayer.setParams({ _t: Date.now() }, false);
+  function startRadarAnimation() {
+    if (radarLayers.length === 0) return;
+    stopRadarAnimation();
+
+    // Add all layers but set opacity to 0
+    radarLayers.forEach(l => {
+      l.setOpacity(0);
+      l.addTo(map);
+    });
+
+    currentRadarFrame = 0;
+    showRadarFrame(0);
+
+    radarAnimInterval = setInterval(() => {
+      currentRadarFrame = (currentRadarFrame + 1) % radarLayers.length;
+      showRadarFrame(currentRadarFrame);
+    }, 700);
+  }
+
+  function showRadarFrame(idx) {
+    radarLayers.forEach((l, i) => {
+      l.setOpacity(i === idx ? 0.75 : 0);
+    });
+
+    // Update timestamp display
+    const ts = document.getElementById('radarTime');
+    if (ts && radarLayers[idx]?._radarTime) {
+      const d = new Date(radarLayers[idx]._radarTime * 1000);
+      ts.textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
   }
 
-  // ─── WEATHER CONDITIONS (for camera page) ───
+  function stopRadarAnimation() {
+    if (radarAnimInterval) {
+      clearInterval(radarAnimInterval);
+      radarAnimInterval = null;
+    }
+  }
+
+  async function refreshRadar() {
+    if (!radarVisible || !map) return;
+    stopRadarAnimation();
+    radarLayers.forEach(l => { if (map.hasLayer(l)) map.removeLayer(l); });
+    radarLayers = [];
+    await fetchRadarData();
+    if (!radarData) return;
+
+    const frames = radarData.radar?.past || [];
+    radarLayers = frames.slice(-10).map(frame => {
+      const layer = L.tileLayer(
+        `https://tilecache.rainviewer.com${frame.path}/256/{z}/{x}/{y}/4/1_1.png`,
+        { opacity: 0, zIndex: 500, maxZoom: 18, tileSize: 256 }
+      );
+      layer._radarTime = frame.time;
+      return layer;
+    });
+
+    if (radarVisible) startRadarAnimation();
+  }
+
+  // ─── WEATHER CONDITIONS (camera page) ───
 
   async function fetchConditions(lat, lng) {
     try {
-      // Step 1: Get the forecast office/gridpoint
       const pointRes = await fetch(`https://api.weather.gov/points/${lat.toFixed(4)},${lng.toFixed(4)}`, {
         headers: { 'User-Agent': 'StormWatch (stormwatch-app, contact@stormwatch.app)' }
       });
       if (!pointRes.ok) return null;
       const pointData = await pointRes.json();
-
-      // Step 2: Get the observation stations
       const stationsUrl = pointData.properties?.observationStations;
       if (!stationsUrl) return null;
-
       const stationsRes = await fetch(stationsUrl, {
         headers: { 'User-Agent': 'StormWatch (stormwatch-app, contact@stormwatch.app)' }
       });
       if (!stationsRes.ok) return null;
       const stationsData = await stationsRes.json();
-
-      // Step 3: Get latest observation from first station
       const stationId = stationsData.features?.[0]?.properties?.stationIdentifier;
       if (!stationId) return null;
-
       const obsRes = await fetch(`https://api.weather.gov/stations/${stationId}/observations/latest`, {
         headers: { 'User-Agent': 'StormWatch (stormwatch-app, contact@stormwatch.app)' }
       });
@@ -303,7 +396,6 @@ const Weather = (() => {
 
   function renderConditions(conditions, container) {
     if (!conditions || !container) return;
-
     const tempC = conditions.temperature?.value;
     const tempF = tempC != null ? Math.round(tempC * 9/5 + 32) : null;
     const humidity = conditions.relativeHumidity?.value;
@@ -313,7 +405,6 @@ const Weather = (() => {
     const desc = conditions.textDescription || 'Unknown';
     const visibility = conditions.visibility?.value;
     const visMiles = visibility != null ? (visibility / 1609.344).toFixed(1) : null;
-
     const windDirLabel = windDir != null ? degToCompass(windDir) : '';
 
     container.innerHTML = `
@@ -345,8 +436,6 @@ const Weather = (() => {
     return dirs[Math.round(deg / 22.5) % 16];
   }
 
-  // ─── ALERTS FOR SPECIFIC LOCATION (camera page) ───
-
   async function fetchAlertsForPoint(lat, lng) {
     try {
       const res = await fetch(`https://api.weather.gov/alerts/active?point=${lat.toFixed(4)},${lng.toFixed(4)}`, {
@@ -367,10 +456,8 @@ const Weather = (() => {
       container.innerHTML = `<div class="no-alerts">✅ No active weather alerts for this area</div>`;
       return;
     }
-
     container.innerHTML = alerts.map(f => {
       const p = f.properties;
-      const style = getSeverityStyle(p.severity);
       const icon = EVENT_ICONS[p.event] || '⚠️';
       const expires = p.expires ? new Date(p.expires).toLocaleString() : '';
       return `
@@ -386,23 +473,17 @@ const Weather = (() => {
     }).join('');
   }
 
-  // ─── AUTO-REFRESH TIMERS ───
+  // ─── AUTO-REFRESH ───
 
   function startAutoRefresh(leafletMap, cameraList) {
     map = leafletMap;
     cameras = cameraList;
-
-    // Alerts: every 60s
     alertRefreshTimer = setInterval(async () => {
       await fetchAlerts();
       renderAlerts(map);
       renderLiveNow(cameras);
     }, 60000);
-
-    // Radar: every 5min
-    radarRefreshTimer = setInterval(() => {
-      refreshRadar();
-    }, 300000);
+    radarRefreshTimer = setInterval(() => { refreshRadar(); }, 300000);
   }
 
   function stopAutoRefresh() {
@@ -410,7 +491,6 @@ const Weather = (() => {
     if (radarRefreshTimer) clearInterval(radarRefreshTimer);
   }
 
-  // ─── UTILITY ───
   function escHtml(str) {
     if (!str) return '';
     const d = document.createElement('div');
@@ -418,22 +498,13 @@ const Weather = (() => {
     return d.innerHTML;
   }
 
-  // ─── PUBLIC API ───
   return {
-    fetchAlerts,
-    renderAlerts,
-    getCamerasInAlerts,
-    renderLiveNow,
-    addRadarLayer,
-    toggleRadar,
-    refreshRadar,
-    fetchConditions,
-    renderConditions,
-    fetchAlertsForPoint,
-    renderPointAlerts,
-    startAutoRefresh,
-    stopAutoRefresh,
+    fetchAlerts, renderAlerts, getCamerasInAlerts, renderLiveNow,
+    addRadarLayer, toggleRadar, refreshRadar,
+    fetchConditions, renderConditions,
+    fetchAlertsForPoint, renderPointAlerts,
+    startAutoRefresh, stopAutoRefresh,
     get alertData() { return alertData; },
-    get radarLayer() { return radarLayer; }
+    get radarLayers() { return radarLayers; }
   };
 })();
