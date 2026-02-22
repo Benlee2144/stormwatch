@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Camera — StormWatch</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">
+      <span class="icon">⚡</span>
+      <span>Storm<span class="accent">Watch</span></span>
+    </a>
+    <div class="nav-links">
+      <a href="index.html">Map</a>
+      <a href="about.html">About</a>
+    </div>
+    <input type="text" class="nav-search" id="navSearch" placeholder="Search cameras… ⌘K">
+  </nav>
+
+  <div id="searchOverlay" class="search-overlay">
+    <div class="search-box">
+      <input type="text" class="search-input" id="searchInput" placeholder="Search by city, state, or camera name…" autocomplete="off">
+    </div>
+    <div id="searchResults" class="search-results"></div>
+  </div>
+
+  <div id="cameraContent" class="camera-view">
+    <div style="padding:0 1rem;max-width:1000px;margin:0 auto 1rem">
+      <div id="breadcrumb" style="font-size:0.8rem;color:var(--text-muted)"></div>
+    </div>
+    <div class="camera-player" id="cameraPlayer">
+      <div class="no-preview"><div class="icon">⏳</div><div>Loading…</div></div>
+    </div>
+    <div class="camera-info">
+      <h1 id="camName" style="font-size:1.5rem;font-weight:700"></h1>
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.5rem">
+        <span style="color:var(--text-secondary)" id="camLocation"></span>
+        <span id="camCategory"></span>
+      </div>
+      <!-- Weather alerts for this location -->
+      <div class="meta-card" style="margin-top:1.5rem">
+        <h3>⚠️ Active Alerts</h3>
+        <div id="camAlerts"><div style="color:var(--text-muted);font-size:0.85rem">Checking alerts…</div></div>
+      </div>
+
+      <div class="camera-meta">
+        <div class="meta-card">
+          <h3>🌡️ Current Weather</h3>
+          <div id="camWeather"><div style="color:var(--text-muted);font-size:0.85rem">Loading conditions…</div></div>
+        </div>
+        <div class="meta-card">
+          <h3>📍 Location</h3>
+          <div id="camMiniMap" style="height:200px;border-radius:8px;overflow:hidden"></div>
+        </div>
+      </div>
+      <div class="camera-meta" style="margin-top:1.5rem">
+        <div class="meta-card">
+          <h3>📷 Nearby Cameras</h3>
+          <div id="nearbyCams" class="nearby-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>⚡ StormWatch — Real-time camera monitoring across America</p>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="data/cameras.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/weather.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      initCameraView(CAMERAS);
+      initSearch(CAMERAS);
+
+      // Get current camera
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+      const cam = CAMERAS.find(c => c.i === id);
+      if (!cam) return;
+
+      // Fetch weather conditions and alerts in parallel
+      const [conditions, alerts] = await Promise.all([
+        Weather.fetchConditions(cam.la, cam.ln),
+        Weather.fetchAlertsForPoint(cam.la, cam.ln)
+      ]);
+
+      Weather.renderConditions(conditions, document.getElementById('camWeather'));
+      Weather.renderPointAlerts(alerts, document.getElementById('camAlerts'));
+    });
+  </script>
+</body>
+</html>

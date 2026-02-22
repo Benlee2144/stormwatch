@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://benlee2144.github.io/stormwatch/sitemap.xml

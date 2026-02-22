@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About — StormWatch</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">
+      <span class="icon">⚡</span>
+      <span>Storm<span class="accent">Watch</span></span>
+    </a>
+    <div class="nav-links">
+      <a href="index.html">Map</a>
+      <a href="about.html" class="active">About</a>
+    </div>
+  </nav>
+
+  <section class="about-content section">
+    <h1>⚡ About Storm<span style="color:var(--accent-cyan)">Watch</span></h1>
+    <p>StormWatch is a real-time camera monitoring platform that aggregates over 20,000 live camera feeds from across the United States into a single, dark-themed command center.</p>
+
+    <h2>What It Does</h2>
+    <p>StormWatch provides instant visual access to traffic cameras, weather stations, skyline views, and airport feeds across 39 states. Whether you're tracking a storm system moving across the plains, checking highway conditions before a road trip, or just watching a city skyline at sunset — StormWatch puts eyes everywhere.</p>
+
+    <h2>How It Works</h2>
+    <p>We aggregate publicly available camera feeds from state departments of transportation, municipal traffic systems, and public webcam networks. Camera locations are plotted on an interactive map with real-time clustering for fast performance even with thousands of markers.</p>
+    <p>Each camera feed links directly to its source — we don't proxy or store video. This means you always get the freshest, most current view available.</p>
+
+    <h2>Tech Stack</h2>
+    <p>StormWatch is built as a lightweight static site for maximum speed:</p>
+    <ul class="source-list">
+      <li>🗺️ <strong>Leaflet.js</strong> — Interactive mapping with marker clustering</li>
+      <li>🎨 <strong>Custom Dark UI</strong> — Built from scratch, no framework bloat</li>
+      <li>📡 <strong>20,000+ Cameras</strong> — Aggregated from public DOT and webcam sources</li>
+      <li>⚡ <strong>Static Generation</strong> — Fast loading, no server required</li>
+    </ul>
+
+    <h2>Data Sources</h2>
+    <p>Camera feeds are sourced from publicly available APIs and feeds:</p>
+    <ul class="source-list">
+      <li>🚗 <strong>Arizona DOT (AZ-511)</strong> — 597 cameras</li>
+      <li>🚗 <strong>Caltrans (California)</strong> — 2,973 cameras</li>
+      <li>🚗 <strong>Florida DOT</strong> — 4,458 cameras</li>
+      <li>🚗 <strong>Georgia DOT</strong> — 3,764 cameras</li>
+      <li>🚗 <strong>Idaho DOT</strong> — 447 cameras</li>
+      <li>🚗 <strong>Louisiana DOT</strong> — 316 cameras</li>
+      <li>🚗 <strong>Michigan DOT</strong> — 709 cameras</li>
+      <li>🚗 <strong>Nevada DOT</strong> — 625 cameras</li>
+      <li>🚗 <strong>New York State DOT</strong> — 1,721 cameras</li>
+      <li>🚗 <strong>Pennsylvania DOT</strong> — 1,223 cameras</li>
+      <li>🚗 <strong>Utah DOT</strong> — 1,998 cameras</li>
+      <li>🚗 <strong>Wisconsin DOT</strong> — 446 cameras</li>
+      <li>🚗 <strong>Maine DOT</strong> — 387 cameras</li>
+      <li>🚗 <strong>Other State DOTs</strong> — 1,118 cameras</li>
+      <li>🌆 <strong>EarthCam</strong> — 3 cameras</li>
+      <li>📺 <strong>YouTube Live</strong> — 50 cameras</li>
+    </ul>
+
+    <h2>Disclaimer</h2>
+    <p>StormWatch is an independent project and is not affiliated with, endorsed by, or connected to any government agency, department of transportation, or camera operator. All camera feeds are sourced from publicly accessible endpoints. Camera availability depends on the source operator.</p>
+  </section>
+
+  <footer class="footer">
+    <p>⚡ StormWatch — Real-time camera monitoring across America</p>
+  </footer>
+</body>
+</html>
